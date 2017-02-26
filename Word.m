@@ -24,6 +24,10 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
             self.A = A;
         end
         
+        % observations refers to just 1 set of observations
+        % each word will have multiple sets of observations, 1 per audio
+        % file
+        
         % need f(o|state) at each observation step for each state,
         % this will be represented in matrix D (size NxL, L length of
         % observations)
@@ -80,12 +84,27 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 end
             end 
         end
+		
+		% create the D matrix based on observations and current state of 
+		% mu and Sigma (assuming gaussian mixture model)
+		function D = state_likelihood(self, observations)
+            D = zeros(self.N, size(obserations,2));
+            
+            for i = 1:self.N
+                D(i, :) = mvnpdf(observations', self.mu(:,i)', self.Sigma(:,:,i));
+            end
+		end
 
-        
         % perform baum welch training here. Will set prior, and estimate A,
         % mu, and Sigma
-        function train(self, observations)
+		% implement assuming 1 set of observations first, extend to multiple sets later
+        function e_step(self, observations)
         end
+		
+		% observation set will probably have to be a cell matrix since each set of 
+		% observations can be a different length
+		function trainAll(self, observation_set)
+		end
         
         %add functions as needed
       
