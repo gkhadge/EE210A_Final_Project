@@ -69,7 +69,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
         end
         
         %do both forward and backwards recursion with normalization
-        function [alpha, beta] = forward_backward(self, observations, D)
+        function [alpha, beta, c] = forward_backward(self, observations, D)
             [alpha, c] = self.forward(observations, D);
             
             %now do the backwards part with normalization
@@ -98,12 +98,26 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
         % perform baum welch training here. Will set prior, and estimate A,
         % mu, and Sigma
 		% implement assuming 1 set of observations first, extend to multiple sets later
-        function e_step(self, observations)
+        % r NxL (num states x length of observation)
+        % S L-1xNxN (L-1 NxN matrices)
+        % Nr Nx1
+        function [r,S,Nr] = e_step(self, observations)
+            D = self.state_likelihood(observations);
+            [alpha, beta, c] = self.forward_backward(observations, D);
+            L = size(observations,2);
+            
+            r = alpha.*beta;
+            S = zeros(self.N, self.N, L-1);
+            for i = 2:L
+                S(:,:,i) = ((self.A).*(alpha(:,i-1)*(beta(:,i).*D(:,i))'))/c(i);
+            end
+            Nr = sum(r,2);
+            
         end
 		
 		% observation set will probably have to be a cell matrix since each set of 
 		% observations can be a different length
-		function trainAll(self, observation_set)
+		function trainAll(self, observation_set, num_iter)
 		end
         
         %add functions as needed
