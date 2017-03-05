@@ -48,7 +48,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 end
                 
                 if (normalize)
-					c(i) = sum(alpha(:,i))
+					c(i) = sum(alpha(:,i));
                     alpha(:,i) = alpha(:,i)/c(i); 
                 end
             end
@@ -119,14 +119,15 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
 		% observations can be a different length
 		function trainAll(self, observation_set, num_iter)
             L = size(observation_set,2);
-            expected_mu = zeros(size(self.mu));     %size NxD (D size of feature vector)
-            expected_Sigma = zeros(size(self.Sigma));
-            expected_prior_num = zeros(size(self.prior));
-            expected_prior_den = 0;
-            expected_A_num = zeros(size(self.A));
-            expected_A_den = zeros(size(self.A));
-            expected_N = zeros(self.N,1);
+
             for i = 1:num_iter
+                expected_mu = zeros(size(self.mu));     %size NxD (D size of feature vector)
+                expected_Sigma = zeros(size(self.Sigma));
+                expected_prior_num = zeros(size(self.prior));
+                expected_prior_den = 0;
+                expected_A_num = zeros(size(self.A));
+                expected_A_den = zeros(size(self.A));
+                expected_N = zeros(self.N,1);
                 for l = 1:L
                     Y = cell2mat(observation_set{l});
                     Nl = size(Y,2);
