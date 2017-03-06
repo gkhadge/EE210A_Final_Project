@@ -86,7 +86,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 if i == L                               %initialization
                     beta(:,i) = ones(size(beta(:,i)));
                 else                                    %recursion
-                    beta(:,i) = self.A*(D(:,i+1).*beta(:,i+1))/(sum(c(i+1)));
+                    beta(:,i) = (self.A*(D(:,i+1).*beta(:,i+1)))/c(i+1);
                 end
             end 
         end
@@ -94,7 +94,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
 		% create the D matrix based on observations and current state of 
 		% mu and Sigma (assuming gaussian mixture model)
 		function D = state_likelihood(self, observations)
-            D = zeros(self.N, size(obserations,2));
+            D = zeros(self.N, size(observations,2));
             
             for i = 1:self.N
                 D(i, :) = mvnpdf(observations', self.mu(:,i)', self.Sigma(:,:,i));
@@ -115,7 +115,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
             r = alpha.*beta;            %size NxL (L length of observation vector, N number of states)
             S = zeros(self.N, self.N, L-1);
             for i = 2:L
-                S(:,:,i) = ((self.A).*(alpha(:,i-1)*(beta(:,i).*D(:,i))'))/c(i);
+                S(:,:,i-1) = ((self.A).*(alpha(:,i-1)*(beta(:,i).*D(:,i))'))/c(i);
             end
             Nr = sum(r,2);
             
@@ -132,22 +132,29 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 expected_prior_num = zeros(size(self.prior));
                 expected_prior_den = 0;
                 expected_A_num = zeros(size(self.A));
-                expected_A_den = zeros(size(self.A));
+                %expected_A_den = zeros(size(self.A));
+                % since we know A is a stochastic matrix, we know the rows
+                % must sum up to 1. Since we know the numerator, we can
+                % just normalize the rows instead
                 expected_N = zeros(self.N,1);
+                
+                % TODO: Fix mu and Sigma calculations
+                
                 for l = 1:L
                     Y = observation_set{l};
                     Nl = size(Y,2);
+                    num_features = size(Y,1);
                   	[r,S,Nr] = self.e_step(Y);
                     expected_mu = expected_mu + r*Y';
                     for j = 1:self.N
                         mu_k = repmat(self.mu(:,j),1,Nl); %[mu_k mu_k ... mu_k]
-                        r_k = repmat(r(j,:)',Nl,1); 
+                        r_k = repmat(r(j,:),num_features,1); 
                         expected_Sigma(:,:,j) = expected_Sigma(:,:,j) + (r_k.*(Y-mu_k))*(Y-mu_k)';
                     end
                     expected_prior_num = expected_prior_num + r(:,1);
                     expected_prior_den = expected_prior_den + sum(r(:,1));
                     expected_A_num = expected_A_num + sum(S,3);
-                    expected_A_den = expected_A_den + repmat(sum(sum(S,3)),self.N,1);
+                    %expected_A_den = expected_A_den + repmat(sum(sum(S,3)),self.N,1);
                     expected_N = expected_N + Nr;    
                 end
                 
@@ -156,7 +163,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                     self.Sigma(:,:,j) = expected_Sigma(:,:,j)/expected_N(j);
                 end
                 self.prior = expected_prior_num/expected_prior_den;
-                self.A = expected_A_num./expected_A_den;
+                self.A = normalize_rows(expected_A_num);
             end
         end
         
@@ -166,11 +173,8 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
             self.prior = self.prior/(sum(self.prior));
             % Can also try uniform priors
             % self.prior = ones(self.N, 1)/self.N;
-            self.A = rand(self.N);
-            for i = 1:self.N
-               self.A(i,:) = self.A(i,:)/sum(self.A(i,:)); 
-            end
-            
+            self.A = normalize_rows(rand(self.N));
+
             % Use one set of observations to form a diagonal covariance
             self.Sigma = repmat(diag(diag(cov(observations'))), [1 1 self.N]);
             
