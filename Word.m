@@ -135,7 +135,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 expected_A_den = zeros(size(self.A));
                 expected_N = zeros(self.N,1);
                 for l = 1:L
-                    Y = cell2mat(observation_set{l});
+                    Y = observation_set{l};
                     Nl = size(Y,2);
                   	[r,S,Nr] = self.e_step(Y);
                     expected_mu = expected_mu + r*Y';
@@ -161,6 +161,22 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
         end
         
         function initialize(self, observations)
+            % Random prior and random A matrix
+            self.prior = rand(self.N, 1);
+            self.prior = self.prior/(sum(self.prior));
+            % Can also try uniform priors
+            % self.prior = ones(self.N, 1)/self.N;
+            self.A = rand(self.N);
+            for i = 1:self.N
+               self.A(i,:) = self.A(i,:)/sum(self.A(i,:)); 
+            end
+            
+            % Use one set of observations to form a diagonal covariance
+            self.Sigma = repmat(diag(diag(cov(observations'))), [1 1 self.N]);
+            
+            % Pick a random data points to be the mean
+            indices = randperm(size(observations, 2));
+            self.mu = observations(:, indices(1:self.N));
         end
         %add functions as needed
       
