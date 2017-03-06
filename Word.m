@@ -24,6 +24,12 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
             self.A = A;
         end
         
+        function log_likelihood = log_likelihood(self, observations)
+            D = self.state_likelihood(observations);
+            [~, c] = self.forward(observations, D);
+            log_likelihood = sum(log(c));
+        end
+        
         % observations refers to just 1 set of observations
         % each word will have multiple sets of observations, 1 per audio
         % file
