@@ -127,7 +127,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
             L = size(observation_set,2);
 
             for i = 1:num_iter
-                expected_mu = zeros(size(self.mu));     %size NxD (D size of feature vector)
+                expected_mu = zeros(size(self.mu));     %size DxN (D size of feature vector)
                 expected_Sigma = zeros(size(self.Sigma));
                 expected_prior_num = zeros(size(self.prior));
                 expected_prior_den = 0;
@@ -138,17 +138,15 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 % just normalize the rows instead
                 expected_N = zeros(self.N,1);
                 
-                % TODO: Fix mu and Sigma calculations
-                
                 for l = 1:L
                     Y = observation_set{l};
                     Nl = size(Y,2);
                     num_features = size(Y,1);
                   	[r,S,Nr] = self.e_step(Y);
-                    expected_mu = expected_mu + r*Y';
                     for j = 1:self.N
                         mu_k = repmat(self.mu(:,j),1,Nl); %[mu_k mu_k ... mu_k]
                         r_k = repmat(r(j,:),num_features,1); 
+                        expected_mu(:,j) = expected_mu(:,j) + sum(r_k.*Y,2);
                         expected_Sigma(:,:,j) = expected_Sigma(:,:,j) + (r_k.*(Y-mu_k))*(Y-mu_k)';
                     end
                     expected_prior_num = expected_prior_num + r(:,1);
@@ -157,6 +155,9 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                     %expected_A_den = expected_A_den + repmat(sum(sum(S,3)),self.N,1);
                     expected_N = expected_N + Nr;    
                 end
+                
+                % Set any zeros to one before dividing to avoid NaN
+                expected_N = expected_N + (expected_N == 0);
                 
                 for j = 1:self.N
                     self.mu(:,j) = expected_mu(:,j)/expected_N(j);
