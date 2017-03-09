@@ -1,12 +1,16 @@
 classdef Word < handle %inherit from handle so all copies reference this one class
     properties
        %add more properties as needed
-       N     =   2; % number of states (adjustable variable)
        A     =  []; % NxN transition probability matrix (fill out with baum welch)
        prior =  []; % Nx1 initial state distribution vector
        mu    =  []; % DxN mean vector (D = number of features) 
        Sigma =  []; % DxDxN covariance matrix
        name  =  ''; % Word label
+       
+       % Configuration settings
+       N     =   5; % number of states (adjustable variable)
+       startAtFirstState = false % Always start at first state 
+       useLinearTopology = true  % Use linear topology, otherwise ergodic
     end
     
     methods
@@ -14,14 +18,27 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
             self.name = char(name);
         end
         
+        % Configuration Settings
+        function setStartAtFirstState(self,bool)
+            self.startAtFirstState = bool; 
+        end
+        
+        function setMarkovLinearTopology(self,bool)
+            self.useLinearTopology = bool;
+        end
+        
         % for testing purposes, will set prior with baum welch training 
         function setPrior(self,prior)
             self.prior = prior; 
-        end
+        end        
         
         % for testing purposes, will set TPM with baum welch training
         function setA(self,A)
             self.A = A;
+        end
+        
+        function setN(self,N)
+            self.N = N;
         end
         
         function log_likelihood = log_likelihood(self, observations)
@@ -162,20 +179,51 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 for j = 1:self.N
                     self.mu(:,j) = expected_mu(:,j)/expected_N(j);
                     self.Sigma(:,:,j) = expected_Sigma(:,:,j)/expected_N(j);
+                    
+                    % Check if Sigma is Positive Definite
+                    [~,p] = chol(self.Sigma(:,:,j));
+                    if p~=0
+                        j
+                        self.Sigma(:,:,j)
+                        % Has caused errors in the past, not sure why
+                    end
                 end
-                self.prior = expected_prior_num/expected_prior_den;
+%               
+                % Force Baum-Welch to always start at first state
+                if self.startAtFirstState
+                    self.prior = zeros(size(self.prior));
+                    self.prior(1) = 1;
+                else
+                    self.prior = expected_prior_num/expected_prior_den;
+                end
                 self.A = normalize_rows(expected_A_num);
             end
         end
         
         function initialize(self, observations)
-            % Random prior and random A matrix
-            self.prior = rand(self.N, 1);
-            self.prior = self.prior/(sum(self.prior));
+            % Initialize prior
+            if self.startAtFirstState
+                self.prior = zeros(self.N,1);
+                self.prior(1) = 1;
+            else
+                self.prior = rand(self.N, 1);
+                self.prior = self.prior/(sum(self.prior));
+            end
             % Can also try uniform priors
             % self.prior = ones(self.N, 1)/self.N;
-            self.A = normalize_rows(rand(self.N));
-
+        
+            if self.useLinearTopology
+                % Initialize Linear Markov Chain Topology
+                self.A = zeros(self.N);
+                for q = 1:(self.N-1)
+                    self.A(q,q) = 0.5;%rand(1);
+                    self.A(q,q+1) = 0.5; %rand(1);
+                end
+                self.A(self.N,self.N) = 1;
+            else
+                % Initialize Ergodic Markov Chain Topology
+                self.A = normalize_rows(rand(self.N));   
+            end
             % Use one set of observations to form a diagonal covariance
             self.Sigma = repmat(diag(diag(cov(observations'))), [1 1 self.N]);
             
@@ -185,6 +233,33 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
         end
         %add functions as needed
       
-        
+        % Viterbi Sequency Decoder
+        % Works on one observation at a time
+        function k_o = viterbi_decoder(self, observation)
+            num_obs = size(observation,2);
+            log_p = zeros(self.N,num_obs);
+            psi = zeros(self.N,num_obs);
+            
+            D = self.state_likelihood(observation);
+            
+            log_p(:,1) = log(self.prior.*D(:,1));
+            
+            % Forward Pass
+            for n = 2:num_obs
+               for k = 1:self.N 
+                   arg = log(self.A(:,k)) + log_p(:,n-1);
+                   psi(k,n) = max(arg);
+                   log_p(:,n) = log(self.A(psi(:,n),k)) + log_p(psi(:,n),n-1) + log(D(:,n));
+               end
+            end
+            
+            % Backward Pass
+            k_o = zeros(num_obs,1);
+            k_o(num_obs) = max(log_p(:,num_obs));
+            
+            for n = num_obs-1:-1:1
+                k_o(n) = psi(k_o(n+1),n+1);
+            end
+        end
     end
 end
