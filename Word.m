@@ -178,7 +178,12 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 
                 for j = 1:self.N
                     self.mu(:,j) = expected_mu(:,j)/expected_N(j);
-                    self.Sigma(:,:,j) = expected_Sigma(:,:,j)/expected_N(j);
+                    
+                    expected_Sigma(:,:,j) = expected_Sigma(:,:,j)/expected_N(j);
+                    % Ninja trick to ensure positive semidefiniteness
+                    expected_Sigma(:,:,j) = expected_Sigma(:,:,j) + 0.01*eye(num_features);
+                    
+                    self.Sigma(:,:,j) = expected_Sigma(:,:,j);
                     
                     % Check if Sigma is Positive Definite
                     [~,p] = chol(self.Sigma(:,:,j));
