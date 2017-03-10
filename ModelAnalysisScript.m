@@ -65,7 +65,7 @@ figure('position',[100,100,600,500])
 subplot(3,1,1)
 plot(k_o,'.-')
 xlim([1,num_obs])
-yticks(1:apple.N)
+%yticks(1:apple.N) %matlab 2017 exclusive function
 ylim([0.5,apple.N+0.5])
 grid on
 xlabel('Observations (n)')
