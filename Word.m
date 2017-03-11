@@ -8,8 +8,8 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
        name  =  ''; % Word label
        
        % Configuration settings
-       N     =   5; % number of states (adjustable variable)
-       startAtFirstState = false % Always start at first state 
+       N     =   8; % number of states (adjustable variable)
+       startAtFirstState = true % Always start at first state 
        useLinearTopology = true  % Use linear topology, otherwise ergodic
     end
     
@@ -140,8 +140,12 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
 		
 		% observation set will probably have to be a cell matrix since each set of 
 		% observations can be a different length
-		function trainAll(self, observation_set, num_iter)
+		function [mu_convergence,Sigma_convergence,A_convergence] = trainAll(self, observation_set, num_iter)
             L = size(observation_set,2);
+            
+            mu_convergence = zeros(num_iter,1);
+            Sigma_convergence = zeros(num_iter,1);
+            A_convergence = zeros(num_iter,1);
 
             for i = 1:num_iter
                 expected_mu = zeros(size(self.mu));     %size DxN (D size of feature vector)
@@ -177,12 +181,16 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 expected_N = expected_N + (expected_N == 0);
                 
                 for j = 1:self.N
-                    self.mu(:,j) = expected_mu(:,j)/expected_N(j);
+                    expected_mu(:,j) = expected_mu(:,j)/expected_N(j);
+                    
+                    mu_convergence(i) = mu_convergence(i) + norm(self.mu(:,j)-expected_mu(:,j),'fro')^2;
+                    self.mu(:,j) = expected_mu(:,j);
                     
                     expected_Sigma(:,:,j) = expected_Sigma(:,:,j)/expected_N(j);
                     % Ninja trick to ensure positive semidefiniteness
                     expected_Sigma(:,:,j) = expected_Sigma(:,:,j) + 0.01*eye(num_features);
                     
+                    Sigma_convergence(i) = Sigma_convergence(i) + norm(self.Sigma(:,:,j)-expected_Sigma(:,:,j),'fro')^2;                    
                     self.Sigma(:,:,j) = expected_Sigma(:,:,j);
                     
                     % Check if Sigma is Positive Definite
@@ -201,7 +209,95 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 else
                     self.prior = expected_prior_num/expected_prior_den;
                 end
-                self.A = normalize_rows(expected_A_num);
+                expected_A_num = normalize_rows(expected_A_num);
+                
+                A_convergence(i) = norm(self.A - expected_A_num,'fro')^2;
+                self.A = expected_A_num;
+            end
+        end
+        
+		% observation set will probably have to be a cell matrix since each set of 
+		% observations can be a different length
+		function num_iters = trainAll2convergence(self, observation_set)
+            L = size(observation_set,2);
+            
+            mu_convergence = 100;
+            Sigma_convergence = 100;
+            A_convergence = 100;
+            
+            num_iters = 0;
+
+            while mu_convergence+Sigma_convergence+A_convergence > 1e-10
+                num_iters = num_iters + 1;
+                
+                mu_convergence = 0;
+                Sigma_convergence = 0;
+                
+                expected_mu = zeros(size(self.mu));     %size DxN (D size of feature vector)
+                expected_Sigma = zeros(size(self.Sigma));
+                expected_prior_num = zeros(size(self.prior));
+                expected_prior_den = 0;
+                expected_A_num = zeros(size(self.A));
+                %expected_A_den = zeros(size(self.A));
+                % since we know A is a stochastic matrix, we know the rows
+                % must sum up to 1. Since we know the numerator, we can
+                % just normalize the rows instead
+                expected_N = zeros(self.N,1);
+                
+                for l = 1:L
+                    Y = observation_set{l};
+                    Nl = size(Y,2);
+                    num_features = size(Y,1);
+                  	[r,S,Nr] = self.e_step(Y);
+                    for j = 1:self.N
+                        mu_k = repmat(self.mu(:,j),1,Nl); %[mu_k mu_k ... mu_k]
+                        r_k = repmat(r(j,:),num_features,1); 
+                        expected_mu(:,j) = expected_mu(:,j) + sum(r_k.*Y,2);
+                        expected_Sigma(:,:,j) = expected_Sigma(:,:,j) + (r_k.*(Y-mu_k))*(Y-mu_k)';
+                    end
+                    expected_prior_num = expected_prior_num + r(:,1);
+                    expected_prior_den = expected_prior_den + sum(r(:,1));
+                    expected_A_num = expected_A_num + sum(S,3);
+                    %expected_A_den = expected_A_den + repmat(sum(sum(S,3)),self.N,1);
+                    expected_N = expected_N + Nr;    
+                end
+                
+                % Set any zeros to one before dividing to avoid NaN
+                expected_N = expected_N + (expected_N == 0);
+                
+                for j = 1:self.N
+                    expected_mu(:,j) = expected_mu(:,j)/expected_N(j);
+                    
+                    mu_convergence = mu_convergence + norm(self.mu(:,j)-expected_mu(:,j),'fro')^2;
+                    self.mu(:,j) = expected_mu(:,j);
+                    
+                    expected_Sigma(:,:,j) = expected_Sigma(:,:,j)/expected_N(j);
+                    % Ninja trick to ensure positive semidefiniteness
+                    expected_Sigma(:,:,j) = expected_Sigma(:,:,j) + 0.01*eye(num_features);
+                    
+                    Sigma_convergence = Sigma_convergence + norm(self.Sigma(:,:,j)-expected_Sigma(:,:,j),'fro')^2;                    
+                    self.Sigma(:,:,j) = expected_Sigma(:,:,j);
+                    
+                    % Check if Sigma is Positive Definite
+                    [~,p] = chol(self.Sigma(:,:,j));
+                    if p~=0
+                        j
+                        self.Sigma(:,:,j)
+                        % Has caused errors in the past, not sure why
+                    end
+                end
+%               
+                % Force Baum-Welch to always start at first state
+                if self.startAtFirstState
+                    self.prior = zeros(size(self.prior));
+                    self.prior(1) = 1;
+                else
+                    self.prior = expected_prior_num/expected_prior_den;
+                end
+                expected_A_num = normalize_rows(expected_A_num);
+                
+                A_convergence = norm(self.A - expected_A_num,'fro')^2;
+                self.A = expected_A_num;
             end
         end
         

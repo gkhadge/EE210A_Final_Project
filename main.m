@@ -1,7 +1,7 @@
 %Jason Zheng & Gourav Khadge
 %EE210A Speech Recognition
 
-bw_iters = 30; %adjustable parameter
+% bw_iters = 100; %adjustable parameter
 
 [audio_signals, word_labels] = load_audio('audio');
 apple = Word('apple');
@@ -33,25 +33,25 @@ end
 
 
 apple.initialize(apple_signals{1}); % use one observation set to iniialize our HMM
-apple.trainAll(apple_signals, bw_iters); % train our HMM using the baum welch with 15 iterations
+apple.trainAll2convergence(apple_signals); % train our HMM using the baum welch with 15 iterations
 
 banana.initialize(banana_signals{1});
-banana.trainAll(banana_signals, bw_iters);
+banana.trainAll2convergence(banana_signals);
 
 kiwi.initialize(kiwi_signals{1});
-kiwi.trainAll(kiwi_signals, bw_iters);
+kiwi.trainAll2convergence(kiwi_signals);
 
 lime.initialize(lime_signals{1});
-lime.trainAll(lime_signals, bw_iters);
+lime.trainAll2convergence(lime_signals);
 
 orange.initialize(orange_signals{1});
-orange.trainAll(orange_signals, bw_iters);
+orange.trainAll2convergence(orange_signals);
 
 peach.initialize(peach_signals{1});
-peach.trainAll(peach_signals, bw_iters);
+peach.trainAll2convergence(peach_signals);
 
 pineapple.initialize(pineapple_signals{1});
-pineapple.trainAll(pineapple_signals, bw_iters);
+pineapple.trainAll2convergence(pineapple_signals);
 
 test_signals = [apple_signals banana_signals kiwi_signals lime_signals orange_signals peach_signals pineapple_signals];
 
@@ -60,7 +60,6 @@ word_arr = [apple banana kiwi lime orange peach pineapple];
 %predict_word(apple_signals{7}, word_arr)
 
 [error_rate, predicted_labels] = cross_validate(test_signals, word_labels, word_arr);
-
-
-
-
+%%
+confusion_matrix = confusionmat(word_labels,predicted_labels);
+confusion_matrix
