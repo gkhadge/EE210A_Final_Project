@@ -4,7 +4,12 @@
 function normalized = normalize_rows(A)
     M = size(A,1);
     for i = 1:M
-        A(i,:) = A(i,:)/sum(A(i,:));
+		s = sum(A(i,:));
+		if s == 0
+			A(i,i) = 1;
+		else
+			A(i,:) = A(i,:)/s;
+		end
     end
     normalized = A;
 end
