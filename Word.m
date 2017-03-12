@@ -44,7 +44,11 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
         function log_likelihood = log_likelihood(self, observations)
             D = self.state_likelihood(observations);
             [~, c] = self.forward(observations, D);
-            log_likelihood = sum(log(c));
+            if any(c==0)
+                log_likelihood = -Inf;
+            else
+                log_likelihood = sum(log(c));
+            end
         end
         
         % observations refers to just 1 set of observations
@@ -62,7 +66,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
             L = size(observations,2); % num of observations
             alpha = zeros(self.N,L);
             c = ones(L,1);
-			
+            
             for i = 1:L
                 if i == 1                               %initialize 
                     alpha(:,i) = D(:,i).*self.prior;
@@ -72,7 +76,8 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 
                 if (normalize)
 					c(i) = sum(alpha(:,i));
-                    alpha(:,i) = alpha(:,i)/c(i); 
+                    alpha(:,i) = alpha(:,i)/(c(i)+(c(i)==0)); % handle c(i)==0
+                    % if c(i) ==0, alpha(:,i) ==0
                 end
             end
         end
@@ -103,7 +108,11 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                 if i == L                               %initialization
                     beta(:,i) = ones(size(beta(:,i)));
                 else                                    %recursion
-                    beta(:,i) = (self.A*(D(:,i+1).*beta(:,i+1)))/c(i+1);
+                    beta(:,i) = (self.A*(D(:,i+1).*beta(:,i+1)))/(c(i+1)+(c(i+1)==0));
+                    if c(i+1)==0
+                        % Handle c(i+1) == 0
+                        beta(:,i) = 0;
+                    end
                 end
             end 
         end
