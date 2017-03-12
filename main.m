@@ -59,7 +59,7 @@ word_arr = [apple banana kiwi lime orange peach pineapple];
 
 %predict_word(apple_signals{7}, word_arr)
 
-[error_rate, predicted_labels] = cross_validate(test_signals, word_labels, word_arr);
+[error_rate, predicted_labels, confidence] = cross_validate(test_signals, word_labels, word_arr);
 %%
 confusion_matrix = confusionmat(word_labels,predicted_labels);
 confusion_matrix

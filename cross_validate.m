@@ -2,13 +2,14 @@
 % corresponding labels, return the error rate and a vector which contains
 % the predicted labels
 
-function [error_rate, predicted_labels] = cross_validate(test_set, labels, word_arr)
+function [error_rate, predicted_labels, confidence] = cross_validate(test_set, labels, word_arr)
     % labels are going to be in the form of a cell array
     % test_set is also going to be in the form of a cell array
     
     features_extracted = true; % paramter that determines if test_set already has features extracted
     
     L = length(test_set);
+    confidence = zeros(L,1);
     
     num_errors = 0;
     
@@ -21,10 +22,11 @@ function [error_rate, predicted_labels] = cross_validate(test_set, labels, word_
         end
         
         %predict word
-        predicted_idx = predict_word(features, word_arr);
+        [predicted_idx, conf] = predict_word(features, word_arr);
         
         %update predicted_labels
         predicted_labels{i} = word_arr(predicted_idx).name;
+        confidence(i) = conf;
         
         %update errors
 
