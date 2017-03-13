@@ -9,8 +9,9 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
        
        % Configuration settings
        N     =   8; % number of states (adjustable variable)
-       startAtFirstState = true % Always start at first state 
-       useLinearTopology = true  % Use linear topology, otherwise ergodic
+       startAtFirstState = true; % Always start at first state 
+       useLinearTopology = true;  % Use linear topology, otherwise ergodic
+       topology = 0;
     end
     
     methods
@@ -47,7 +48,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
             if any(c==0)
                 log_likelihood = -Inf;
             else
-                log_likelihood = sum(log(c));
+                log_likelihood = sum(log10(c));
             end
         end
         
@@ -236,7 +237,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
             
             num_iters = 0;
 
-            while mu_convergence+Sigma_convergence+A_convergence > 1e-10
+            while (mu_convergence+Sigma_convergence+A_convergence > 1e-10 || num_iters < 50) && num_iters < 5e3
                 num_iters = num_iters + 1;
                 
                 mu_convergence = 0;
@@ -304,6 +305,9 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                     self.prior = expected_prior_num/expected_prior_den;
                 end
                 expected_A_num = normalize_rows(expected_A_num);
+                % Makes sure no state is ever accidentally removed
+                expected_A_num = expected_A_num + self.topology*1e-10;
+                expected_A_num = normalize_rows(expected_A_num);
                 
                 A_convergence = norm(self.A - expected_A_num,'fro')^2;
                 self.A = expected_A_num;
@@ -330,10 +334,13 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
                     self.A(q,q+1) = 0.5; %rand(1);
                 end
                 self.A(self.N,self.N) = 1;
+                self.topology = self.A > 0;
             else
                 % Initialize Ergodic Markov Chain Topology
                 self.A = normalize_rows(rand(self.N));   
+                self.topology = ones(size(self.A));
             end
+            
             % Use one set of observations to form a diagonal covariance
             self.Sigma = repmat(diag(diag(cov(observations'))), [1 1 self.N]);
             

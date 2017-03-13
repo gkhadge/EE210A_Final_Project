@@ -33,6 +33,7 @@ function [error_rate, predicted_labels, confidence] = cross_validate(test_set, l
       
         if (~strcmp(predicted_labels{i}, labels{i}))
             num_errors = num_errors+1;
+            confidence(i) = 0;
         end
 
     end
