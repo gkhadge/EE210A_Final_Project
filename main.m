@@ -3,6 +3,10 @@
 close all
 % bw_iters = 100; %adjustable parameter
 
+topology = 'Ergodic';
+Nstate = 'N8';
+Fvector = 'F2';
+
 [audio_signals, word_labels_orig] = load_audio('audio');
 apple = Word('apple');
 banana = Word('banana');
@@ -168,7 +172,6 @@ average_confusion_matrix
 average_confusion_matrix_train = mean(confusion_matrices_train,3)/num_train;%average_confusion_matrix/num_trials;
 average_confusion_matrix_train
 
-word_strings = {'apple', 'banana', 'kiwi', 'lime', 'orange', 'peach', 'pineapple'};
 
 figure(1)
 hold all
@@ -183,7 +186,8 @@ boxplot(overall_confidence(:),boxplot_groupings(:),'Labels',word_strings)
 grid on
 ylabel('Confidence')
 title('Confidence of Word Classification (Testing Data)')
-% saveas(gcf,'ConfBoxPlot_Testing_Linear_N8_F2','epsc')
+filename = ['ConfBoxPlot_Testing_',topology,'_',Nstate,'_',Fvector];
+saveas(gcf,filename,'epsc')
 
 figure(2)
 hold all
@@ -198,26 +202,39 @@ boxplot(overall_confidence_train(:),boxplot_groupings_train(:),'Labels',word_str
 grid on
 ylabel('Confidence')
 title('Confidence of Word Classification (Training Data)')
-% saveas(gcf,'ConfBoxPlot_Training_Linear_N8_F2','epsc')
+filename = ['ConfBoxPlot_Training_',topology,'_',Nstate,'_',Fvector];
+saveas(gcf,filename,'epsc')
 %%
+
+% i = 1;
+% states = [1:16,20];
+% Nstate = ['N',num2str(states(i))];
+% filename = ['Linear_N',num2str(states(i)),'_F2_data.mat'];
+% load(filename);
+
 figure(3)
 histogram(error_rates)
 xlabel('Error Rate')
 ylabel('Instances')
 title('Error Rate Histogram (Testing Data)')
-% saveas(gcf,'ErrRateHist_Testing_Linear_N8_F2','epsc')
+filename = ['ErrRateHist_Testing_',topology,'_',Nstate,'_',Fvector];
+saveas(gcf,filename,'epsc')
 
 figure(4)
 histogram(error_rates_train)
 xlabel('Error Rate')
 ylabel('Instances')
-title('Error Rate Histogram (Testing Data)')
-% saveas(gcf,'ErrRateHist_Training_Linear_N8_F2','epsc')
+title('Error Rate Histogram (Training Data)')
+filename = ['ErrRateHist_Training_',topology,'_',Nstate,'_',Fvector];
+saveas(gcf,filename,'epsc')
+
+disp(['Mean Error Rate: ',num2str(mean(error_rates))])
 %%
 figure(5)
 imshow(average_confusion_matrix, 'InitialMagnification',10000)  % # you want your cells to be larger than single pixels
 
 colormap(gca, hot) % # to change the default grayscale colormap 
+% colormap(gca, jet) % # to change the default grayscale colormap 
 colorbar
 axis on
 set(gca, 'XTickLabel',word_strings, 'XTick',1:numel(word_strings))
@@ -226,13 +243,15 @@ xlabel('Predicted Label')
 ylabel('True Label')
 title('Confusion Matrix: Word Identification (Testing Data)')
 
-% saveas(gcf,'AvConfMatrixTesting_Linear_N8_F2','epsc')
+filename = ['AvConfMatrix_Testing_',topology,'_',Nstate,'_',Fvector];
+saveas(gcf,filename,'epsc')
 
 
 figure(6)
 imshow(average_confusion_matrix_train, 'InitialMagnification',10000)  % # you want your cells to be larger than single pixels
 
-colormap(gca, hot) % # to change the default grayscale colormap 
+colormap(gca, hot) % # to change the default grayscale colormap
+% colormap(gca, jet) % # to change the default grayscale colormap 
 colorbar
 axis on
 set(gca, 'XTickLabel',word_strings, 'XTick',1:numel(word_strings))
@@ -241,16 +260,18 @@ xlabel('Predicted Label')
 ylabel('True Label')
 title('Confusion Matrix: Word Identification (Training Data)')
 
-% saveas(gcf,'AvConfMatrixTraining_Linear_N8_F2','epsc')
+
+filename = ['AvConfMatrix_Training_',topology,'_',Nstate,'_',Fvector];
+saveas(gcf,filename,'epsc')
 %%
-% filename = 'Linear_N8_F2_data.mat';
-% save(filename,'average_confusion_matrix',...
-%                 'average_confusion_matrix_train',...
-%                 'confusion_matrices',...
-%                 'error_rates',...
-%                 'error_rates_train',...
-%                 'overall_confidence_train',...
-%                 'boxplot_groupings_train',...
-%                 'overall_confidence',...
-%                 'boxplot_groupings',...
-%                 'word_labels')
+filename = [topology,'_',Nstate,'_',Fvector,'_data.mat'];%'Linear_N6_F2_data.mat'];
+save(filename,'average_confusion_matrix',...
+                'average_confusion_matrix_train',...
+                'confusion_matrices',...
+                'error_rates',...
+                'error_rates_train',...
+                'overall_confidence_train',...
+                'boxplot_groupings_train',...
+                'overall_confidence',...
+                'boxplot_groupings',...
+                'word_labels')

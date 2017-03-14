@@ -8,7 +8,7 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
        name  =  ''; % Word label
        
        % Configuration settings
-       N     =   8; % number of states (adjustable variable)
+       N     =   15; % number of states (adjustable variable)
        startAtFirstState = true; % Always start at first state 
        useLinearTopology = true;  % Use linear topology, otherwise ergodic
        topology = 0;

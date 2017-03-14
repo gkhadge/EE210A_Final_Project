@@ -5,23 +5,48 @@
 apple = Word('apple');
 
 % Configuration Settings
-apple.setN(5)
+apple.setN(15)
 apple.setStartAtFirstState(true)
 apple.setMarkovLinearTopology(true)
 
 for i = 1:15
-    apple_signals(i) = {extract_features(audio_signals{i})};
-    
-    % Hacking this code to work for the banana files
-%     apple_signals(i) = {extract_features(audio_signals{i+15})};
-    
+    apple_signals(i) = {extract_features(audio_signals{i+15})};
+    banana_signals(i) = {extract_features(audio_signals{i+15})};
+    kiwi_signals(i) = {extract_features(audio_signals{i+30})};
+    lime_signals(i) = {extract_features(audio_signals{i+45})};
+    orange_signals(i) = {extract_features(audio_signals{i+60})};
+    peach_signals(i) = {extract_features(audio_signals{i+75})};
+    pineapple_signals(i) = {extract_features(audio_signals{i+90})};
 %     scatter(apple_signals{i}(1,:), apple_signals{i}(2,:));
 %     hold on;
 end
 
+
+% To sort into training data and test data
+num_train = 10;
+num_expr = 15 - num_train;
+
+% To sort into training data and test data
+random_indx = zeros(15,7);
+for i = 1:7
+    random_indx(:,i)=randperm(15);    
+end
+
 apple.initialize(apple_signals{1}); % use one observation set to iniialize our HMM
-apple.trainAll(apple_signals, 150); % train our HMM using the baum welch with 150 iterations
+num_iters = apple.trainAll2convergence(apple_signals(random_indx(1:num_train,1))); % train our HMM using the baum welch with 15 iterations
+disp(['Iterations (apple): ', num2str(num_iters)]);
 disp('Finished Training')
+
+test_signals = [apple_signals(random_indx(num_train+1:end,1))' 
+                banana_signals(random_indx(num_train+1:end,2))'
+                kiwi_signals(random_indx(num_train+1:end,3))'
+                lime_signals(random_indx(num_train+1:end,4))'
+                orange_signals(random_indx(num_train+1:end,5))'
+                peach_signals(random_indx(num_train+1:end,6))'
+                pineapple_signals(random_indx(num_train+1:end,7))']';
+
+% [error_rate, predicted_labels, confidence] = cross_validate(test_signals, word_labels, word_arr);
+
 %%
 close all
 
@@ -29,7 +54,7 @@ self.N = apple.N;
 self.A = apple.A;
 
 % Plot results
-for q = 1:15
+for q = random_indx(num_train+1:end,1)'
 disp(['Plotting ',num2str(q)])
 observation = apple_signals{q};
 
