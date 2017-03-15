@@ -1,3 +1,7 @@
+%% Word.m
+% Class stores HMM model for each word
+% Includes functions to initialize, train, validate test data
+
 classdef Word < handle %inherit from handle so all copies reference this one class
     properties
        %add more properties as needed
@@ -26,6 +30,11 @@ classdef Word < handle %inherit from handle so all copies reference this one cla
         
         function setMarkovLinearTopology(self,bool)
             self.useLinearTopology = bool;
+        end
+                
+        function setLinearModel(self,bool)
+            self.useLinearTopology = bool;
+            self.startAtFirstState = bool;
         end
         
         % for testing purposes, will set prior with baum welch training 

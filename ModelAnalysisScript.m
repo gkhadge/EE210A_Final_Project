@@ -10,7 +10,7 @@ apple.setStartAtFirstState(true)
 apple.setMarkovLinearTopology(true)
 
 for i = 1:15
-    apple_signals(i) = {extract_features(audio_signals{i+15})};
+    apple_signals(i) = {extract_features(audio_signals{i})};
     banana_signals(i) = {extract_features(audio_signals{i+15})};
     kiwi_signals(i) = {extract_features(audio_signals{i+30})};
     lime_signals(i) = {extract_features(audio_signals{i+45})};
@@ -53,8 +53,10 @@ close all
 self.N = apple.N;
 self.A = apple.A;
 
+loop_ind = 0;
 % Plot results
 for q = random_indx(num_train+1:end,1)'
+loop_ind = loop_ind+1;
 disp(['Plotting ',num2str(q)])
 observation = apple_signals{q};
 
@@ -95,11 +97,13 @@ ylim([0.5,apple.N+0.5])
 grid on
 xlabel('Observations (n)')
 ylabel('State')
+title('Viterbi Decoded State Transitions')
 subplot(3,1,2)
 plot(audio_signals{q})
 xlim([1,length(audio_signals{q})])
 xlabel('Samples')
 ylabel('Amplitude')
+title('Raw Sound Data')
 subplot(3,1,3)
 plot(apple_signals{q}(1,:),'ro');
 grid on
@@ -113,9 +117,16 @@ for k = 1:apple.N
 end
 
 xlim([1,num_obs])
-xlabel('Observations (n), red: 1st, blue: 2nd')
+xlabel('Observations (n), red: 1st spectral feature, blue: 2nd spectral feature')
 ylabel('Frequency Amplitude')
+title('Spectral Features (Actual and State-Expected)')
 % legend('1st','2nd')
+
+topology = 'Linear';
+Nstate = 'N15';
+Fvector = 'F2';
+filename = ['Viterbi_Apple_',topology,'_',Nstate,'_',Fvector,'_',num2str(loop_ind)];
+saveas(gcf,filename,'epsc')
 end
 disp('Transition Matrix:')
 disp(apple.A)

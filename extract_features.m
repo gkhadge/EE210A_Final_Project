@@ -1,10 +1,14 @@
 %simple feature extraction, grab the N largest peaks in each frame
 
-function feature_matrix = extract_features(sound)
+function feature_matrix = extract_features(sound, N)
     Fs = 8000;
     framesize = 80;
     overlap = 20;
-    N = 2; %length of feature vector
+    
+    %Set default number of features to 2
+      if nargin < 2
+        N = 2; %length of feature vector
+      end
     
     NFFT = 2^nextpow2(framesize);
     
